@@ -42,18 +42,25 @@
         button.textContent = 'Notify';
         button.setAttribute('data-provider', providerName);
         button.dataset.state = targetRestaurants.includes(providerName) ? 'on' : 'off';
-        button.style.backgroundColor = button.dataset.state === 'on' ? 'green' : 'gray';
+        button.style.backgroundColor = button.dataset.state === 'on' ? 'ForestGreen' : 'Silver';
         button.style.padding = '10px';
         button.style.color = 'white';
+        button.style.cursor = 'pointer'
+        button.addEventListener("mouseover", function () {
+            button.style.backgroundColor = button.dataset.state === 'on' ? 'DarkGreen' : 'DarkGray';
+        });
+        button.addEventListener("mouseout", function () {
+            button.style.backgroundColor = button.dataset.state === 'on' ? 'ForestGreen' : 'Silver';
+        });
 
         button.addEventListener('click', () => {
             if (button.dataset.state === 'off') {
                 button.dataset.state = 'on';
-                button.style.backgroundColor = 'green';
+                button.style.backgroundColor = 'ForestGreen';
                 targetRestaurants.push(providerName);
             } else {
                 button.dataset.state = 'off';
-                button.style.backgroundColor = 'gray';
+                button.style.backgroundColor = 'Silver';
                 const index = targetRestaurants.indexOf(providerName);
                 if (index > -1) {
                     targetRestaurants.splice(index, 1);
@@ -82,6 +89,13 @@
             addButtonToProvider(providerNameDiv);
         });
     }
+
+    //This fixes the buttons disappearing when the DOM refreshes
+    const observer = new MutationObserver(() => {
+        checkAndAddButtons();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 
     document.addEventListener('click', () => {
         // Add a small delay before checking for new provider names
