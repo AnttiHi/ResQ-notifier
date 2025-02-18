@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ResQ-notifier
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Alerts when there are ResQ offers from specific restaurants
 // @author       https://github.com/AnttiHi
 // @match        https://resq-club.com/app/*
@@ -28,12 +28,16 @@
         });
     }
 
-    function showNotification(title, message) {
+    function showNotification(title, message, offerDiv) {
         if (Notification.permission === "granted") {
             const notification = new Notification(title, {
                 body: message,
                 silent: false
+
             });
+            notification.onclick = (event) => {
+                offerDiv.click();
+            };
         }
     }
 
@@ -45,7 +49,7 @@
         button.style.backgroundColor = button.dataset.state === 'on' ? 'ForestGreen' : 'Silver';
         button.style.padding = '10px';
         button.style.color = 'white';
-        button.style.cursor = 'pointer'
+        button.style.cursor = 'pointer';
         button.addEventListener("mouseover", function () {
             button.style.backgroundColor = button.dataset.state === 'on' ? 'DarkGreen' : 'DarkGray';
         });
@@ -66,7 +70,12 @@
                     targetRestaurants.splice(index, 1);
                 }
             }
-            localStorage.setItem('targetRestaurants', JSON.stringify(targetRestaurants));
+            if (typeof Storage !== "undefined") {
+                localStorage.setItem('targetRestaurants', JSON.stringify(targetRestaurants));
+            } else {
+                console.warn("localStorage not available")
+            }
+
         });
         return button;
     }
@@ -117,32 +126,35 @@
                 if (divText.includes(restaurant.toLowerCase())) {
                     const offerRow = offerRowProviderName.closest('.offerRow-content');
                     if (offerRow) {
-                        const offerRowNames = [];
+                        let offerRowNames = new Map();
                         offerRow.querySelectorAll('.offerRowName').forEach(offerRowName => {
                             if (offerRowName) {
+                                const offerID = offerRow.closest('.offerRow').getAttribute('oid');
                                 const offerRowNameText = offerRowName.textContent?.trim() || '';
-                                offerRowNames.push(offerRowNameText);
+                                offerRowNames.set(offerID, offerRowNameText);
                             }
                         });
 
-                        offerRowNames.forEach(offerRowName => {
-                            if (!notifiedOfferRowNames.has(offerRowName)) {
+                        for (let [key, value] of offerRowNames) {
+                            if (!notifiedOfferRowNames.has(value)) {
                                 if (!restaurants[restaurant]) {
-                                    restaurants[restaurant] = [];
+                                    restaurants[restaurant] = new Map();
                                 }
-                                restaurants[restaurant].push(offerRowName);
+                                restaurants[restaurant].set(key, value);
                             }
-                        });
+                        }
                     }
                 }
             });
         });
-
         for (const restaurant in restaurants) {
             if (restaurants.hasOwnProperty(restaurant)) {
-                const offerList = restaurants[restaurant].join(', ');
+                const offerList = Array.from(restaurants[restaurant].values()).join(', ');
                 if (offerList) {
-                    showNotification(`Offers in "${restaurant}": "${offerList}"`);
+                    const offerID = Array.from(restaurants[restaurant].keys())[0];
+                    const offerDivs = document.querySelectorAll('.offerRow')
+                    const offerDiv = Array.from(offerDivs).find(div => div.getAttribute('oid') === offerID);
+                    showNotification(`Offers in "${restaurant}"`, `"${offerList}"`, offerDiv);
 
                     restaurants[restaurant].forEach(offerRowName => {
                         notifiedOfferRowNames.add(offerRowName);
