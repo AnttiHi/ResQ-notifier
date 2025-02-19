@@ -37,6 +37,7 @@
             });
             notification.onclick = (event) => {
                 offerDiv.click();
+                window.focus();
             };
         }
     }
@@ -154,7 +155,7 @@
                     const offerID = Array.from(restaurants[restaurant].keys())[0];
                     const offerDivs = document.querySelectorAll('.offerRow')
                     const offerDiv = Array.from(offerDivs).find(div => div.getAttribute('oid') === offerID);
-                    showNotification(`Offers in "${restaurant}"`, `"${offerList}"`, offerDiv);
+                    showNotification(`Offers in ${restaurant}`, `${offerList}`, offerDiv);
 
                     restaurants[restaurant].forEach(offerRowName => {
                         notifiedOfferRowNames.add(offerRowName);
