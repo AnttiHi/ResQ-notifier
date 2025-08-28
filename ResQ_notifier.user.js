@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ResQ-notifier
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Alerts when there are ResQ offers from specific restaurants
 // @author       https://github.com/AnttiHi
 // @match        https://resq-club.com/app/*
@@ -10,6 +10,13 @@
 
 (function () {
     'use strict';
+
+    let notifications = true;
+    let retrievedNotifications = localStorage.getItem('notifications');
+    if (retrievedNotifications !== null) {
+        notifications = retrievedNotifications === 'true';
+        console.log('Notifications retrieved from localStorage:', notifications);
+    }
 
     let targetRestaurants = [];
     let retrievedData = localStorage.getItem('targetRestaurants');
@@ -37,7 +44,6 @@
             });
             notification.onclick = (event) => {
                 offerDiv.click();
-                window.focus();
             };
         }
     }
@@ -93,6 +99,10 @@
     }
 
     function checkAndAddButtons() {
+        let existingNotificationButton = document.querySelector('button[id="globalNotifications"]')
+        if (!existingNotificationButton) {
+            createNotificationButton();
+        }
         const providerNameDivs = document.querySelectorAll('.providerName');
 
         providerNameDivs.forEach((providerNameDiv) => {
@@ -155,7 +165,10 @@
                     const offerID = Array.from(restaurants[restaurant].keys())[0];
                     const offerDivs = document.querySelectorAll('.offerRow')
                     const offerDiv = Array.from(offerDivs).find(div => div.getAttribute('oid') === offerID);
-                    showNotification(`Offers in ${restaurant}`, `${offerList}`, offerDiv);
+
+                    if (notifications) {
+                        showNotification(`Offers in "${restaurant}"`, `"${offerList}"`, offerDiv);
+                    }
 
                     restaurants[restaurant].forEach(offerRowName => {
                         notifiedOfferRowNames.add(offerRowName);
@@ -164,5 +177,48 @@
             }
         }
     }
+
+    function createNotificationButton() {
+        const button = document.createElement('button');
+        button.id = 'globalNotifications'
+        button.textContent = 'Notifications';
+        button.dataset.state = notifications ? 'on' : 'off';
+        button.style.backgroundColor = button.dataset.state === 'on' ? 'ForestGreen' : 'Silver';
+        button.style.position = 'relative';
+        button.style.top = '86px';
+        button.style.left = '200px';
+        button.style.zIndex = '9999';
+        button.style.padding = '10px';
+        button.style.color = 'white';
+        button.style.cursor = 'pointer';
+        button.addEventListener("mouseover", function () {
+            button.style.backgroundColor = button.dataset.state === 'on' ? 'DarkGreen' : 'DarkGray';
+        });
+        button.addEventListener("mouseout", function () {
+            button.style.backgroundColor = button.dataset.state === 'on' ? 'ForestGreen' : 'Silver';
+        });
+
+        button.addEventListener('click', () => {
+            if (button.dataset.state === 'off') {
+                button.dataset.state = 'on';
+                button.style.backgroundColor = 'ForestGreen';
+                notifications = true;
+            } else {
+                button.dataset.state = 'off';
+                button.style.backgroundColor = 'Silver';
+                notifications = false;
+            }
+
+            if (typeof Storage !== "undefined") {
+                localStorage.setItem('notifications', notifications);
+            } else {
+                console.warn("localStorage not available")
+            }
+        });
+
+        const headerDiv = document.querySelector('.topBar');
+        headerDiv.appendChild(button);
+    }
+
     setInterval(checkForOffers, 2000);
 })();
